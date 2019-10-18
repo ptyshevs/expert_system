@@ -221,9 +221,32 @@ def evaluate(inp, verbose=False):
         print("EVAL RESULT:", res)
     return res
 
+def parse_file(f):
+    lines = []
+    for line in f:
+        if line.endswith("\n"):
+            line = line[:-1]
+        if line.startswith("#"):
+            continue
+        elif not line:
+            continue
+        tokens = [c for c in line.split(" ") if c and c]
+        full = True
+        for i in range(len(tokens)):
+            if tokens[i].startswith("#"):
+                full = False
+                lines.append(" ".join(tokens[:i]))
+                break
+        if full:
+            lines.append(" ".join(tokens))
+    return lines
+
+def validate_file(f):
+    assert 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--interactive', '-i', default=True, action='store_true', help='interactive mode')
+    parser.add_argument('--interactive', '-i', default=False, action='store_true', help='interactive mode')
     parser.add_argument('--file', '-f', default=None, help='File to read')
     parser.add_argument('--natural', '-n', default=True, action='store_true', help='more natural input')
     parser.add_argument('--verbose', '-v', default=False, action='store_true', help='more verbose evaluation')
@@ -257,6 +280,7 @@ if __name__ == '__main__':
             f = sys.stdin
         try:
             proper_input = parse_file(f)
+            print("PROP INPUT:", proper_input)
             # 1. Rewrite into format that can be accepted into evaluate
             # 2. Feed this into evaluation line-by-line
         except ValueError as e:
