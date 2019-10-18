@@ -1,5 +1,6 @@
 import argparse
 import string
+import sys
 
 class Fact:
     def __init__(self, name, value=False):
@@ -223,6 +224,7 @@ def evaluate(inp, verbose=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--interactive', '-i', default=True, action='store_true', help='interactive mode')
+    parser.add_argument('--file', '-f', default=None, help='File to read')
     parser.add_argument('--natural', '-n', default=True, action='store_true', help='more natural input')
     parser.add_argument('--verbose', '-v', default=False, action='store_true', help='more verbose evaluation')
 
@@ -244,4 +246,19 @@ if __name__ == '__main__':
                 print(res)
             except ValueError as e:
                 print(e)
-
+    else:
+        if args.file is not None:
+            try:
+                f = open(args.file)
+            except ValueError:
+                print("No such file. Nice try")
+                exit(1)
+        else:
+            f = sys.stdin
+        try:
+            proper_input = parse_file(f)
+            # 1. Rewrite into format that can be accepted into evaluate
+            # 2. Feed this into evaluation line-by-line
+        except ValueError as e:
+            print(e)
+            exit(1)
