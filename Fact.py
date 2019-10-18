@@ -1,59 +1,25 @@
 class Fact:
-    state_map = {False: 0, None: 1, True: 2}
+    state_map = {False: -1, None: 0, True: 1}
 
     def __init__(self, name, value=None):
         self.name = name
-        # Value can be 0, 1, 2 representing False, None, True
+        # Value can be -1, 0, 1 representing False, None, True
         if value in [None, False, True]:
             self.value = self.state_map[value]
         else:
-            if value not in [0, 1, 2]:
-                raise ValueError(f"Fact can only have three values [0, 1, 2], not {value}")
+            if value not in [-1, 0, 1]:
+                raise ValueError(f"Fact can only have three values [-1, 0, 1], not {value}")
             self.value = value
     
     def __and__(self, o):
         if type(o) is Fact:
-            r = None
-            sv = self.value
-            ov = o.value
-            if sv == 0:
-                r = False
-            elif sv == 1:
-                if ov == 0:
-                    r = False
-                else:
-                    r = None
-            else:
-                if ov == 0:
-                    r = False
-                elif ov == 1:
-                    r = None
-                else:
-                    r = True
-            return Fact(f'{self.name} & {o.name}', r)
+            return Fact(f'{self.name} & {o.name}', min(self.value, o.value))
         else:
             raise NotImplementedError(f"{self} + {o} is not implemented")
     
     def __or__(self, o):
         if type(o) is Fact:
-            r = None
-            sv = self.value
-            ov = o.value
-            if sv == 2:
-                r = True
-            elif sv == 1:
-                if ov == 2:
-                    r = True
-                else:
-                    r = None
-            else:
-                if ov == 0:
-                    r = False
-                elif ov == 1:
-                    r = None
-                else:
-                    r = True
-            return Fact(f'{self.name} | {o.name}', r)
+            return Fact(f'{self.name} | {o.name}', max(self.value, o.value))
         else:
             raise NotImplementedError(f'{self} | {o} is not implemented')
     
@@ -82,21 +48,13 @@ class Fact:
             raise ValueError(f"{self} <=> {o} is not implemented")
 
     def __neg__(self):
-        sv = self.value
-        r = None
-        if sv == 0:
-            r = True
-        elif sv == 1:
-            r = None
-        else:
-            r = False
-        return Fact(f'!{self.name}', r)
+        return Fact(f'!{self.name}', -self.value)
     
     def __repr__(self):
         r = None
-        if self.value == 0:
+        if self.value == -1:
             r = False
-        elif self.value == 1:
+        elif self.value == 0:
             r = None
         else:
             r = True
