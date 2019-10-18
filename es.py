@@ -104,7 +104,6 @@ def expand_tokens(tokens):
             exp.append(Operator(tk))
         elif tk == '<':
             if i < n - 2 and tokens[i+1] == '=' and tokens[i+2] == '>':
-                print("HERE")
                 exp.append(Operator('<=>'))
                 i += 2
             else:
@@ -203,7 +202,7 @@ def evaluate_rpn(rpn, env):
     res = eval_stack[0]
     return res
 
-def evaluate(inp, verbose=False):
+def evaluate(inp, verbose=False, return_rpn=False):
     tokens = ''.join(c for c in inp.split(" ") if c)
     if verbose:
         print("TOKENS:", tokens)
@@ -216,6 +215,8 @@ def evaluate(inp, verbose=False):
     rpn = infix_to_rpn(exp)
     if verbose:
         print("RPN:", rpn)
+    if return_rpn:
+        return rpn
     res = evaluate_rpn(rpn, env)
     if verbose:
         print("EVAL RESULT:", res)
@@ -288,7 +289,9 @@ if __name__ == '__main__':
             f = sys.stdin
         try:
             proper_input = parse_file(f)
-            print("PROP INPUT:", '\n'.join(proper_input))
+            print("PROP INPUT:")
+            for pi in proper_input:
+                print(pi, evaluate(pi, return_rpn=True))
             # 1. Rewrite into format that can be accepted into evaluate
             # 2. Feed this into evaluation line-by-line
         except ValueError as e:
