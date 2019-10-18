@@ -230,19 +230,27 @@ def parse_file(f):
             continue
         elif not line:
             continue
-        tokens = [c for c in line.split(" ") if c and c]
+        tokens = [c for c in line.split(" ") if c]
+        if len(tokens) == 0:
+            continue
         full = True
         for i in range(len(tokens)):
             if tokens[i].startswith("#"):
                 full = False
-                lines.append(" ".join(tokens[:i]))
+                r = " ".join(tokens[:i])
+                if r:
+                    lines.append(r)
                 break
         if full:
             lines.append(" ".join(tokens))
     return lines
 
-def validate_file(f):
-    assert 
+def validate_file(lines):
+    pass
+
+
+def build_graph(rules):
+    pass
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -280,7 +288,7 @@ if __name__ == '__main__':
             f = sys.stdin
         try:
             proper_input = parse_file(f)
-            print("PROP INPUT:", proper_input)
+            print("PROP INPUT:", '\n'.join(proper_input))
             # 1. Rewrite into format that can be accepted into evaluate
             # 2. Feed this into evaluation line-by-line
         except ValueError as e:
