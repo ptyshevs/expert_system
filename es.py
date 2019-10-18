@@ -1,53 +1,8 @@
 import argparse
 import string
 import sys
+from Fact import Fact
 
-class Fact:
-    def __init__(self, name, value=False):
-        self.name = name
-        self.value = value
-    
-    def __and__(self, o):
-        if type(o) is Fact:
-            return Fact(self.name, self.value & o.value)
-        else:
-            raise NotImplementedError(f"{self} + {o} is not implemented")
-    
-    def __or__(self, o):
-        if type(o) is Fact:
-            return Fact(self.name, self.value | o.value)
-        else:
-            raise NotImplementedError(f'{self} | {o} is not implemented')
-    
-    def __xor__(self, o):
-        if type(o) is Fact:
-            return Fact(self.name, self.value ^ o.value)
-        else:
-            raise NotImplementedError(f"{self} ^ {o} is not implemented")
-
-    def imply(self, o):
-        if type(o) is Fact:
-            if self.value and not o.value:
-                return Fact(self.name, False)
-            else:
-                return Fact(self.name, True)
-        else:
-            raise ValueError(f"{self} => {o} is not implemented")
-
-    def equivalent(self, o):
-        if type(o) is Fact:
-            if (self.value and o.value) or (not self.value and not o.value):
-                return Fact(self.name, True)
-            else:
-                return Fact(self.name, False)
-        else:
-            raise ValueError(f"{self} <=> {o} is not implemented")
-
-    def __neg__(self):
-        return Fact(self.name, not self.value)
-    
-    def __repr__(self):
-        return f'{self.name}={self.value}'
 
 class Operator:
     precedence_map = {'<=>': 1, '=>': 2, '^': 3, '|': 4, '+' : 5, '!': 6, '=': 0}
