@@ -208,6 +208,7 @@ def validate_file(lines):
 def build_graph(rules):
     pass
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--interactive', '-i', default=False, action='store_true', help='interactive mode')

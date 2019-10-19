@@ -4,7 +4,7 @@ class Fact:
     def __init__(self, name, value=None):
         self.name = name
         # Value can be -1, 0, 1 representing False, None, True
-        if value in [None, False, True]:
+        if type(value) is bool or value is None:
             self.value = self.state_map[value]
         else:
             if value not in [-1, 0, 1]:
