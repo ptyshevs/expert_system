@@ -240,6 +240,7 @@ def build_graph(rules):
                 if n_op == 1:
                     r = val.eval(op)
                     print("R", r)
+                    
                     eval_stack.append(val.eval(op))
                 else:
                     if not eval_stack:
@@ -249,7 +250,6 @@ def build_graph(rules):
                         eval_stack.append(val.eval(op, op2, env=env))
     print(graph)
     return graph
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
