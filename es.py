@@ -11,6 +11,7 @@ class Operator:
 
     def __init__(self, op):
         self.op = op
+        self.name = op
         self.n_operands = 2 if op != '!' else 1
         self.precedence = self.precedence_map[op]
     
@@ -201,12 +202,53 @@ def parse_file(f):
             lines.append(" ".join(tokens))
     return lines
 
-def validate_file(lines):
-    pass
+def validate_input(lines):
+    if len(lines) < 2:
+        raise ValueError("Input is insufficient for proper working")
+    rules, init_facts, query = lines[:-2], lines[-2], lines[-1]
+    if not query.startswith("?") or not all(c in string.ascii_uppercase for c in query[1:]):
+        raise ValueError("Invalid query:", query)
+    if not init_facts.startswith("=") or not all(c in string.ascii_uppercase for c in init_facts[1:]):
+        raise ValueError("Invalid initial facts:", init_facts)
+    rules_rpn = [evaluate(rule, return_rpn=True) for rule in rules]
+    return rules_rpn, init_facts, query
 
+def find_in_graph(graph, val):
+    for t in graph:
+        if val.name == t.name:
+            return t
+    return None
 
 def build_graph(rules):
-    pass
+    graph = dict()
+    for rule in rules:
+        print("RULE:", rule)
+        eval_stack = []
+        while rule:
+            val = rule.pop(0)
+            if type(val) is Fact:
+                r = find_in_graph(graph, val)
+                if r is None:
+                    graph[val] = []
+                    r = val
+                eval_stack.append(r)
+            else:  # Operator
+                n_op = val.n_operands
+                if not eval_stack:
+                    raise ValueError(f"Not enough operands to perform calculation | Operator {val} ({type(val)})")
+                op = eval_stack.pop()
+                if n_op == 1:
+                    r = val.eval(op)
+                    print("R", r)
+                    eval_stack.append(val.eval(op))
+                else:
+                    if not eval_stack:
+                        raise ValueError(f"Not enough operands to perform calculation | Operator {val}, op1 {op}")
+                    else:
+                        op2 = eval_stack.pop()
+                        eval_stack.append(val.eval(op, op2, env=env))
+    print(graph)
+    return graph
 
 
 if __name__ == '__main__':
@@ -245,9 +287,11 @@ if __name__ == '__main__':
             f = sys.stdin
         try:
             proper_input = parse_file(f)
-            print("PROP INPUT:")
-            for pi in proper_input:
-                print(pi, evaluate(pi, return_rpn=True))
+            # print("PROP INPUT:")
+            rules_rpn, init_facts, query = validate_input(proper_input)
+            graph = build_graph(rules_rpn)
+            # for pi in proper_input:
+                # print(pi, evaluate(pi, return_rpn=True))
             # 1. Rewrite into format that can be accepted into evaluate
             # 2. Feed this into evaluation line-by-line
         except ValueError as e:
