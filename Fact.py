@@ -3,13 +3,14 @@ class Fact:
 
     def __init__(self, name, value=None):
         self.name = name
+        self.atomic = True
         # Value can be -1, 0, 1 representing False, None, True
-        if type(value) is bool or value is None:
-            self.value = self.state_map[value]
-        else:
-            if value not in [-1, 0, 1]:
-                raise ValueError(f"Fact can only have three values [-1, 0, 1], not {value}")
-            self.value = value
+        # if type(value) is bool or value is None:
+            # self.value = self.state_map[value]
+        # else:
+            # if value not in [-1, 0, 1]:
+                # raise ValueError(f"Fact can only have three values [-1, 0, 1], not {value}")
+        self.value = value
     
     def __and__(self, o):
         if type(o) is Fact:
@@ -51,14 +52,9 @@ class Fact:
         return Fact(f'!{self.name}', -self.value)
     
     def __repr__(self):
-        r = None
-        if self.value == -1:
-            r = False
-        elif self.value == 0:
-            r = None
-        else:
-            r = True
-        return f'{self.name}: {r}'
+        r = self.value
+        at = 'T' if self.atomic else 'F'
+        return f'{self.name}: {r} [{at}]'
 
 if __name__ == '__main__':
     a = Fact('A', True)

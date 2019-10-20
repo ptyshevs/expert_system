@@ -1,0 +1,51 @@
+resolve query:
+    lookup among atomic
+    if found
+        return
+    else
+        push query
+        resolve among complex
+        pop query
+
+resolve among complex:
+    find all propositions with query as a part of rhs
+    for query in found
+        result <- solve lhs
+        if result is undetermined
+            undetermined
+        if implication
+            if result is true
+                solve rhs as true
+            else
+                undetermined
+        else if iff
+            solve rhs as result
+
+
+solve rhs as result:
+    if result if undetermined
+        undetermined
+    if rhs is atomic
+        result
+    if rhs operation is NOT
+        not result
+    if binary operation (a,b):
+        let second = if fact == a then b else a 
+        if OR and result is false
+            false
+        if OR and result is true
+            if second is false
+                true
+            else
+                undetermined
+        if AND and result is true
+            true
+        if AND and result is false
+            if second is true
+                false
+            else
+                undetermined
+        if XOR and result is false
+            return second
+        if XOR and result is true
+            not second

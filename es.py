@@ -208,48 +208,40 @@ def validate_input(lines):
     rules, init_facts, query = lines[:-2], lines[-2], lines[-1]
     if not query.startswith("?") or not all(c in string.ascii_uppercase for c in query[1:]):
         raise ValueError("Invalid query:", query)
+    else:
+        query = query[1:]
     if not init_facts.startswith("=") or not all(c in string.ascii_uppercase for c in init_facts[1:]):
         raise ValueError("Invalid initial facts:", init_facts)
-    rules_rpn = [evaluate(rule, return_rpn=True) for rule in rules]
-    return rules_rpn, init_facts, query
+    else:
+        init_facts = init_facts[1:]
 
-def find_in_graph(graph, val):
-    for t in graph:
-        if val.name == t.name:
-            return t
-    return None
+    facts = dict()  # List of all known facts, either atomic or complex
 
-def build_graph(rules):
-    graph = dict()
+    rules_parsed = []
     for rule in rules:
-        print("RULE:", rule)
-        eval_stack = []
-        while rule:
-            val = rule.pop(0)
-            if type(val) is Fact:
-                r = find_in_graph(graph, val)
-                if r is None:
-                    graph[val] = []
-                    r = val
-                eval_stack.append(r)
-            else:  # Operator
-                n_op = val.n_operands
-                if not eval_stack:
-                    raise ValueError(f"Not enough operands to perform calculation | Operator {val} ({type(val)})")
-                op = eval_stack.pop()
-                if n_op == 1:
-                    r = val.eval(op)
-                    print("R", r)
-                    
-                    eval_stack.append(val.eval(op))
+        tokens = ''.join(c for c in rule.split(" ") if c)
+        exp = expand_tokens(tokens)
+
+        lhs, consequence, rhs = [], None, []
+
+        is_lhs = True
+        for t in exp:
+            if type(t) is Fact:
+                if t.name in facts:
+                    t = facts[t.name]
                 else:
-                    if not eval_stack:
-                        raise ValueError(f"Not enough operands to perform calculation | Operator {val}, op1 {op}")
-                    else:
-                        op2 = eval_stack.pop()
-                        eval_stack.append(val.eval(op, op2, env=env))
-    print(graph)
-    return graph
+                    facts[t.name] = t
+                if not is_lhs:
+                    t.atomic = False
+            if t.name in ['=>', '<=>']:
+                consequence = t
+                is_lhs = False
+            elif is_lhs:
+                lhs.append(t)
+            else:
+                rhs.append(t)
+        rules_parsed.append((lhs, consequence, rhs))
+    return rules_parsed, init_facts, facts, query
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -288,8 +280,25 @@ if __name__ == '__main__':
         try:
             proper_input = parse_file(f)
             # print("PROP INPUT:")
-            rules_rpn, init_facts, query = validate_input(proper_input)
-            graph = build_graph(rules_rpn)
+            rules, init_facts, facts, queries = validate_input(proper_input)
+
+            for f in init_facts:
+                if f not in facts:
+                    raise ValueError(f"Don't understand initial fact {f}")
+                else:
+                    fact = facts[f]
+                    if not fact.atomic:
+                        fact.atomic = True
+                    fact.value = True
+            for f in facts.values():
+                print(f, f.atomic, f.value)
+                if f.atomic and f.value is None:
+                    f.value = False
+            print("RULES", rules)
+            print("INIT FACTS:", init_facts)
+            print("FACTS:", facts)
+            print("QUERIES:", queries)
+            # graph = build_graph(rules_rpn)
             # for pi in proper_input:
                 # print(pi, evaluate(pi, return_rpn=True))
             # 1. Rewrite into format that can be accepted into evaluate
