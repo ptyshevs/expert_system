@@ -1,5 +1,7 @@
 A => B
 C => B
-A + D => C + B
+A + D =>  B
+
+
 =A
-?B
+?ABCDMD

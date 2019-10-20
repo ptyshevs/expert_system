@@ -122,15 +122,10 @@ def infix_to_rpn(expr):
         output.append(op)
     return output     
 
-def evaluate_rpn(rpn, env):
+def evaluate_rpn(rpn, facts, rules):
     eval_stack = []
     while rpn:
         val = rpn.pop(0)
-        if type(val) is Fact:
-            for t in env:
-                if val.name == t.name:
-                    val = t
-                    break
         if type(val) is Fact:
             eval_stack.append(val)
         elif type(val) is Operator:
@@ -138,24 +133,22 @@ def evaluate_rpn(rpn, env):
             if not eval_stack:
                 raise ValueError(f"Not enough operands to perform calculation | Operator {val} ({type(val)})")
             op = eval_stack.pop()
+            op = resolve_query(rules, facts, op)
             if n_op == 1:
                 eval_stack.append(val.eval(op))
             else:
                 if not eval_stack:
-                    if val == '!':
-                        print(f"Unary negation")
-                        eval_stack.append(val.eval(op))
-                    else:
-                        raise ValueError(f"Not enough operands to perform calculation | Operator {val}, op1 {op}")
+                    raise ValueError(f"Not enough operands to perform calculation | Operator {val}, op1 {op}")
                 else:
                     op2 = eval_stack.pop()
+                    op2 = resolve_query(rules, facts, op2)
                     eval_stack.append(val.eval(op, op2, env=env))
         else:
             raise NotImplementedError(val, type(val))
     if len(eval_stack) != 1:
         raise ValueError("Expression doesn't evaluate to a single value")
     # print("EVAL STACK:", eval_stack)
-    res = eval_stack[0]
+    res = eval_stack[0].value
     return res
 
 def evaluate(inp, verbose=False, return_rpn=False):
@@ -240,8 +233,56 @@ def validate_input(lines):
                 lhs.append(t)
             else:
                 rhs.append(t)
+        if len(lhs) == 0:
+            raise ValueError(f"{rule}: Empty LHS")
+        elif len(rhs) == 0:
+            raise ValueError(f"{rule}: Empty RHS")
+        elif consequence is None:
+            raise ValueError(f"{rule}: Consequence is not understood")
         rules_parsed.append((lhs, consequence, rhs))
     return rules_parsed, init_facts, facts, query
+
+def initialize_facts(init_facts, facts):
+    for f in init_facts:
+        if f not in facts:
+            raise ValueError(f"Initial fact {f} doesn't exist in graph")
+        else:
+            fact = facts[f]
+            if not fact.atomic:
+                print("HERE")
+                fact.atomic = True
+            fact.value = True
+        for f in facts.values():
+            if f.atomic and f.value is None:
+                f.value = False
+
+def resolve_query(rules, facts, f):
+    result = None
+
+    if f.atomic:
+        result = f.value
+    else:
+        # Resolving among complex
+        rules_with_rhs = [r for r in rules if f in r[2]]
+        print("RULES WITH RHS:", rules_with_rhs)
+        for r in rules_with_rhs:
+            lhs, cons, rhs = r
+            
+            rpn = infix_to_rpn(lhs)
+            print("RPN:", rpn)
+            evaluated_lhs = evaluate_rpn(rpn, facts, rules)
+            print("EVAL RESULT:", evaluated_lhs)
+            
+    return result
+
+def resolve_queries(rules, facts, queries):
+    for q in queries:
+        if q not in facts:
+            print(f"Query is not understood: {q}")
+            continue
+        f = facts[q]
+        res = resolve_query(rules, facts, f)
+        print(f"Q[{q}]: {res}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -281,28 +322,16 @@ if __name__ == '__main__':
             proper_input = parse_file(f)
             # print("PROP INPUT:")
             rules, init_facts, facts, queries = validate_input(proper_input)
+            
+            initialize_facts(init_facts, facts)
 
-            for f in init_facts:
-                if f not in facts:
-                    raise ValueError(f"Don't understand initial fact {f}")
-                else:
-                    fact = facts[f]
-                    if not fact.atomic:
-                        fact.atomic = True
-                    fact.value = True
-            for f in facts.values():
-                print(f, f.atomic, f.value)
-                if f.atomic and f.value is None:
-                    f.value = False
             print("RULES", rules)
             print("INIT FACTS:", init_facts)
             print("FACTS:", facts)
             print("QUERIES:", queries)
-            # graph = build_graph(rules_rpn)
-            # for pi in proper_input:
-                # print(pi, evaluate(pi, return_rpn=True))
-            # 1. Rewrite into format that can be accepted into evaluate
-            # 2. Feed this into evaluation line-by-line
+
+            resolve_queries(rules, facts, queries)
+            
         except ValueError as e:
             print(e)
             exit(1)
