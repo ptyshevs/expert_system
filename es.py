@@ -244,6 +244,9 @@ def validate_input(lines):
     return rules_parsed, init_facts, facts, query
 
 def initialize_facts(init_facts, facts):
+    for f in facts.values():
+        if f.atomic:
+            f.value = None
     for f in init_facts:
         if f not in facts:
             print(f"Initial fact {f} doesn't exist in graph")
