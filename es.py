@@ -191,7 +191,7 @@ def parse_file(f):
             lines.append(" ".join(tokens))
     return lines
 
-def parse_rule(rule):
+def parse_rule(rule, facts):
     tokens = ''.join(c for c in rule.split(" ") if c)
     exp = expand_tokens(tokens)
     lhs, consequence, rhs = [], None, []
@@ -240,7 +240,7 @@ def validate_input(lines):
 
     rules_parsed = []
     for rule in rules:
-        rules_parsed.append(parse_rule(rule))
+        rules_parsed.append(parse_rule(rule, facts))
     return rules_parsed, init_facts, facts, query
 
 def initialize_facts(init_facts, facts):
@@ -389,7 +389,7 @@ if __name__ == '__main__':
                     elif inp.startswith("?"):
                         queries = inp[1:].strip()
                     else:
-                        rules.append(parse_rule(inp))
+                        rules.append(parse_rule(inp, facts))
                 except ValueError as e:
                     print(e)
     else:
