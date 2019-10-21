@@ -18,6 +18,8 @@ class Operator:
     def eval(self, l, r=None, **kwargs):
         if type(l) is bool:
             if self.op == '+':
+                if type(l) is bool:
+                    return r & l
                 return l & r
             elif self.op == '!':
                 return not l
@@ -133,17 +135,17 @@ def infix_to_rpn(expr):
         output.append(op)
     return output     
 
-def evaluate_rpn(rpn, facts, rules):
+def evaluate_rpn(rpn, facts, rules, verbose=False):
     eval_stack = []
     while rpn:
         val = rpn.pop(0)
         if type(val) is Fact:
-            val = resolve_query(rules, facts, val, verbose=True)
-
-            # if res is None:
-            #     val.value = False
-            # else:
-            #     val = res
+            res = resolve_query(rules, facts, val, verbose=verbose)
+            
+            if res is None:
+                val.value = False
+            else:
+                val = res
             eval_stack.append(val)
         elif type(val) is Operator:
             n_op = val.n_operands
@@ -236,7 +238,6 @@ def validate_input(lines):
     for rule in rules:
         tokens = ''.join(c for c in rule.split(" ") if c)
         exp = expand_tokens(tokens)
-
         lhs, consequence, rhs = [], None, []
 
         is_lhs = True
@@ -248,7 +249,10 @@ def validate_input(lines):
                     facts[t.name] = t
                 if not is_lhs:
                     t.atomic = False
-            if t.name in ['=>', '<=>']:
+            if type(t) is str and t in ['=>', '<=>']:
+                consequence = t
+                is_lhs = False
+            elif type(t) is not str and t.name in ['=>', '<=>']:
                 consequence = t
                 is_lhs = False
             elif is_lhs:
@@ -274,9 +278,9 @@ def initialize_facts(init_facts, facts):
             if not fact.atomic:
                 fact.atomic = True
             fact.value = True
-        for f in facts.values():
-            if f.atomic and f.value is None:
-                f.value = False
+    for f in facts.values():
+        if f.atomic and f.value is None:
+            f.value = False
 
 def solve_rhs(facts, rhs, res, query, verbose=False):
     if verbose:
@@ -308,7 +312,11 @@ def solve_rhs(facts, rhs, res, query, verbose=False):
         raise ValueError("Invalid RHS:", rhs)
 
 
-def resolve_query(rules, facts, f, verbose=False):
+def resolve_query(rules, facts, f, verbose=False, stack=[]):
+    if f in stack:
+        return None
+    else:
+        stack.append(f)
     result = None
     if verbose:
         print("Resolving query:", f)
@@ -322,8 +330,13 @@ def resolve_query(rules, facts, f, verbose=False):
         if verbose:
             print("RULES WITH RHS:", rules_with_rhs)
         for r in rules_with_rhs:
+
             lhs, cons, rhs = r[0][:], r[1], r[2][:]
             
+            if f in lhs:
+                print("Recursion attempted")
+                continue
+
             rpn = infix_to_rpn(lhs)
             if verbose:
                 print("RPN:", rpn)
@@ -331,13 +344,14 @@ def resolve_query(rules, facts, f, verbose=False):
             if verbose:
                 print("LHS EVAL:", evaluated_lhs, "is None:", evaluated_lhs is None)
             if evaluated_lhs is None:
-                print("Continued")
+                if verbose:
+                    print("Continued")
                 continue
             elif cons.name == '=>':
                 if verbose:
                     print("Resolving implication")
                 if evaluated_lhs is True:
-                    result = solve_rhs(facts, rhs, True, f, True)
+                    result = solve_rhs(facts, rhs, True, f, verbose=verbose)
                 else:
                     if verbose:
                         print("Proposition is False, moving on")
@@ -345,10 +359,10 @@ def resolve_query(rules, facts, f, verbose=False):
             elif cons.name == '<=>':
                 if verbose:
                     print("Resolving equivalence")
-                result = solve_rhs(facts, rhs, evaluated_lhs, f, True)
+                result = solve_rhs(facts, rhs, evaluated_lhs, f, verbose=verbose)
             else:
                 raise ValueError("Invalid consequence operator", cons)
-
+    stack.pop()
     return result
 
 def resolve_queries(rules, facts, queries, verbose=False):

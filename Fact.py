@@ -15,18 +15,24 @@ class Fact:
     def __and__(self, o):
         if type(o) is Fact:
             return Fact(f'{self.name} & {o.name}', min(self.value, o.value))
+        elif type(o) is bool:
+            return self.value & o
         else:
             raise NotImplementedError(f"{self} + {o} is not implemented")
     
     def __or__(self, o):
         if type(o) is Fact:
             return Fact(f'{self.name} | {o.name}', max(self.value, o.value))
+        elif type(o) is bool:
+            return self.value | o
         else:
             raise NotImplementedError(f'{self} | {o} is not implemented')
     
     def __xor__(self, o):
         if type(o) is Fact:
             return Fact(self.name, self.value ^ o.value)
+        elif type(o) is bool:
+            return self.value ^ o
         else:
             raise NotImplementedError(f"{self} ^ {o} is not implemented")
 
