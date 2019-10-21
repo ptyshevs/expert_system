@@ -340,13 +340,15 @@ def resolve_query(rules, facts, f, verbose=False, stack=[]):
     stack.pop()
     return result
 
-def resolve_queries(rules, facts, queries, verbose=False):
+def resolve_queries(rules, facts, queries, args):
     for q in queries:
         if q not in facts:
             print(f"Query is not understood: {q}")
             continue
         f = facts[q]
-        res = resolve_query(rules, facts, f, verbose)
+        res = resolve_query(rules, facts, f, args.verbose)
+        if res is None:
+            res = False
         print(f"Q[{q}]: {res}")
 
 if __name__ == '__main__':
@@ -355,6 +357,7 @@ if __name__ == '__main__':
     parser.add_argument('--file', '-f', default=None, help='File to read')
     parser.add_argument('--natural', '-n', default=True, action='store_true', help='more natural input')
     parser.add_argument('--verbose', '-v', default=False, action='store_true', help='more verbose evaluation')
+    parser.add_argument('--strict', '-s', default=False, action='store_true', help='Be strict when ambiguous (None->False converter)')
 
     args = parser.parse_args()
 
@@ -379,7 +382,7 @@ if __name__ == '__main__':
                     print(f"QUERIES NOW: |{queries}| | RULES: {rules}")
 
                 initialize_facts(init_facts, facts)
-                resolve_queries(rules, facts, queries, args.verbose)
+                resolve_queries(rules, facts, queries, args)
             else:
                 try:
                     if not inp:
@@ -414,7 +417,7 @@ if __name__ == '__main__':
                 print("FACTS:", facts)
                 print("QUERIES:", queries)
 
-            resolve_queries(rules, facts, queries, args.verbose)
+            resolve_queries(rules, facts, queries, args)
             
         except ValueError as e:
             print(e)
