@@ -1,7 +1,4 @@
-A => B
-C => B
-A + D =>  B
+A ^ !A <=> B
 
-
-=A
-?ABCDMD
+=AD
+?AB

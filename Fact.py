@@ -49,7 +49,7 @@ class Fact:
             raise ValueError(f"{self} <=> {o} is not implemented")
 
     def __neg__(self):
-        return Fact(f'!{self.name}', -self.value)
+        return Fact(f'!{self.name}', not self.value)
     
     def __repr__(self):
         r = self.value

@@ -16,32 +16,43 @@ class Operator:
         self.precedence = self.precedence_map[op]
     
     def eval(self, l, r=None, **kwargs):
-        if self.op == '+':
-            return l & r
-        elif self.op == '!':
-            return -l
-        elif self.op == '|':
-            return r | l
-        elif self.op == '^':
-            return r ^ l
-        elif self.op == '=>':
-            return r.imply(l)
-        elif self.op == '<=>':
-            return r.equivalent(l)
-        
-        elif self.op == '=':
-            print("ASSIGN, env:", kwargs, "l=", l, 'r=', r)
-            env = kwargs['env']
-            found = False
-            for t in env:
-                if t.name == r.name:
-                    r = t
-                    found = True
-                    break
-            r.name = l.name
-            r.value = l.value
-            if not found:
-                env.append(r)
+        if type(l) is bool:
+            if self.op == '+':
+                return l & r
+            elif self.op == '!':
+                return not l
+            elif self.op == '|':
+                return r | l
+            elif self.op == '^':
+                return r ^ l
+            return r
+        else:
+            if self.op == '+':
+                return l & r
+            elif self.op == '!':
+                return -l
+            elif self.op == '|':
+                return r | l
+            elif self.op == '^':
+                return r ^ l
+            elif self.op == '=>':
+                return r.imply(l)
+            elif self.op == '<=>':
+                return r.equivalent(l)
+            
+            elif self.op == '=':
+                print("ASSIGN, env:", kwargs, "l=", l, 'r=', r)
+                env = kwargs['env']
+                found = False
+                for t in env:
+                    if t.name == r.name:
+                        r = t
+                        found = True
+                        break
+                r.name = l.name
+                r.value = l.value
+                if not found:
+                    env.append(r)
             return r
             
     
@@ -135,20 +146,26 @@ def evaluate_rpn(rpn, facts, rules):
             op = eval_stack.pop()
             op = resolve_query(rules, facts, op)
             if n_op == 1:
-                eval_stack.append(val.eval(op))
+                r = val.eval(op)
+                print(f"val: {val}, op: {op}, R: {r}")
+                eval_stack.append(r)
             else:
                 if not eval_stack:
                     raise ValueError(f"Not enough operands to perform calculation | Operator {val}, op1 {op}")
                 else:
                     op2 = eval_stack.pop()
                     op2 = resolve_query(rules, facts, op2)
-                    eval_stack.append(val.eval(op, op2, env=env))
+                    eval_stack.append(val.eval(op, op2))
         else:
             raise NotImplementedError(val, type(val))
     if len(eval_stack) != 1:
         raise ValueError("Expression doesn't evaluate to a single value")
     # print("EVAL STACK:", eval_stack)
-    res = eval_stack[0].value
+    res = eval_stack[0]
+    if type(res) is bool:
+        return res
+    elif type(res) is Fact:
+        return res.value
     return res
 
 def evaluate(inp, verbose=False, return_rpn=False):
@@ -245,7 +262,8 @@ def validate_input(lines):
 def initialize_facts(init_facts, facts):
     for f in init_facts:
         if f not in facts:
-            raise ValueError(f"Initial fact {f} doesn't exist in graph")
+            print(f"Initial fact {f} doesn't exist in graph")
+            continue
         else:
             fact = facts[f]
             if not fact.atomic:
@@ -256,9 +274,31 @@ def initialize_facts(init_facts, facts):
             if f.atomic and f.value is None:
                 f.value = False
 
+def solve_rhs(facts, rhs, res):
+    print("RHS:", rhs, "as:", res)
+    if res is None:
+        return res
+    elif len(rhs) == 1:
+        t = rhs[0]
+        if type(t) is Fact:
+            return res
+    elif len(rhs) == 2:
+        op, val = rhs
+        if op.name == '!':
+            return not res
+        else:
+            raise ValueError("Invalid RHS:", rhs)
+    elif len(rhs) == 3:
+        a, op, b = rhs
+    else:
+        raise ValueError("Invalid RHS:", rhs)
+
+
 def resolve_query(rules, facts, f):
     result = None
-
+    print("Resolving query:", f)
+    if type(f) is bool:
+        return f
     if f.atomic:
         result = f.value
     else:
@@ -271,8 +311,21 @@ def resolve_query(rules, facts, f):
             rpn = infix_to_rpn(lhs)
             print("RPN:", rpn)
             evaluated_lhs = evaluate_rpn(rpn, facts, rules)
-            print("EVAL RESULT:", evaluated_lhs)
-            
+            print("LHS EVAL:", evaluated_lhs)
+            if evaluated_lhs is None:
+                continue
+            elif cons.name == '=>':
+                print("Resolving implication")
+                if evaluated_lhs is True:
+                    result = solve_rhs(facts, rhs, True)
+                else:
+                    print("Proposition is False, moving on")
+                    continue
+            elif cons.name == '<=>':
+                result = solve_rhs(facts, rhs, evaluated_lhs)
+            else:
+                raise ValueError("Invalid consequence operator", cons)
+
     return result
 
 def resolve_queries(rules, facts, queries):
