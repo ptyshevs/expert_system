@@ -1,7 +1,0 @@
-#Example input 1: 
-B + C => A 
-D ^ E => B 
-B => C
-
-=DE
-?A
