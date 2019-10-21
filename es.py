@@ -16,47 +16,19 @@ class Operator:
         self.precedence = self.precedence_map[op]
     
     def eval(self, l, r=None, **kwargs):
-        if type(l) is bool:
-            if self.op == '+':
-                if type(l) is bool:
-                    return r & l
-                return l & r
-            elif self.op == '!':
-                return not l
-            elif self.op == '|':
-                return r | l
-            elif self.op == '^':
-                return r ^ l
-            return r
-        else:
-            if self.op == '+':
-                return l & r
-            elif self.op == '!':
-                return -l
-            elif self.op == '|':
-                return r | l
-            elif self.op == '^':
-                return r ^ l
-            elif self.op == '=>':
-                return r.imply(l)
-            elif self.op == '<=>':
-                return r.equivalent(l)
-            
-            elif self.op == '=':
-                print("ASSIGN, env:", kwargs, "l=", l, 'r=', r)
-                env = kwargs['env']
-                found = False
-                for t in env:
-                    if t.name == r.name:
-                        r = t
-                        found = True
-                        break
-                r.name = l.name
-                r.value = l.value
-                if not found:
-                    env.append(r)
-            return r
-            
+        if type(l) is Fact:
+            l = l.value
+        if type(r) is Fact:
+            r = r.value
+        if self.op == '+':
+            return l & r
+        elif self.op == '!':
+            return not l
+        elif self.op == '|':
+            return r | l
+        elif self.op == '^':
+            return r ^ l
+        return r
     
     def __repr__(self):
         return self.op
