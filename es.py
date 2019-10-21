@@ -138,23 +138,28 @@ def evaluate_rpn(rpn, facts, rules):
     while rpn:
         val = rpn.pop(0)
         if type(val) is Fact:
+            val = resolve_query(rules, facts, val, verbose=True)
+
+            # if res is None:
+            #     val.value = False
+            # else:
+            #     val = res
             eval_stack.append(val)
         elif type(val) is Operator:
             n_op = val.n_operands
             if not eval_stack:
                 raise ValueError(f"Not enough operands to perform calculation | Operator {val} ({type(val)})")
             op = eval_stack.pop()
-            op = resolve_query(rules, facts, op)
+            # op = resolve_query(rules, facts, op, verbose=True)
             if n_op == 1:
                 r = val.eval(op)
-                print(f"val: {val}, op: {op}, R: {r}")
                 eval_stack.append(r)
             else:
                 if not eval_stack:
                     raise ValueError(f"Not enough operands to perform calculation | Operator {val}, op1 {op}")
                 else:
                     op2 = eval_stack.pop()
-                    op2 = resolve_query(rules, facts, op2)
+                    # op2 = resolve_query(rules, facts, op2, verbose=True)
                     eval_stack.append(val.eval(op, op2))
         else:
             raise NotImplementedError(val, type(val))
@@ -267,15 +272,15 @@ def initialize_facts(init_facts, facts):
         else:
             fact = facts[f]
             if not fact.atomic:
-                print("HERE")
                 fact.atomic = True
             fact.value = True
         for f in facts.values():
             if f.atomic and f.value is None:
                 f.value = False
 
-def solve_rhs(facts, rhs, res):
-    print("RHS:", rhs, "as:", res)
+def solve_rhs(facts, rhs, res, query, verbose=False):
+    if verbose:
+        print("RHS:", rhs, "as:", res)
     if res is None:
         return res
     elif len(rhs) == 1:
@@ -290,13 +295,23 @@ def solve_rhs(facts, rhs, res):
             raise ValueError("Invalid RHS:", rhs)
     elif len(rhs) == 3:
         a, op, b = rhs
+        second = b if f == a else b
+        if op.name == '+':
+            if res is True:
+                return True
+            else:
+                if second is False:
+                    return True
+                else:
+                    return None
     else:
         raise ValueError("Invalid RHS:", rhs)
 
 
-def resolve_query(rules, facts, f):
+def resolve_query(rules, facts, f, verbose=False):
     result = None
-    print("Resolving query:", f)
+    if verbose:
+        print("Resolving query:", f)
     if type(f) is bool:
         return f
     if f.atomic:
@@ -304,37 +319,45 @@ def resolve_query(rules, facts, f):
     else:
         # Resolving among complex
         rules_with_rhs = [r for r in rules if f in r[2]]
-        print("RULES WITH RHS:", rules_with_rhs)
+        if verbose:
+            print("RULES WITH RHS:", rules_with_rhs)
         for r in rules_with_rhs:
-            lhs, cons, rhs = r
+            lhs, cons, rhs = r[0][:], r[1], r[2][:]
             
             rpn = infix_to_rpn(lhs)
-            print("RPN:", rpn)
+            if verbose:
+                print("RPN:", rpn)
             evaluated_lhs = evaluate_rpn(rpn, facts, rules)
-            print("LHS EVAL:", evaluated_lhs)
+            if verbose:
+                print("LHS EVAL:", evaluated_lhs, "is None:", evaluated_lhs is None)
             if evaluated_lhs is None:
+                print("Continued")
                 continue
             elif cons.name == '=>':
-                print("Resolving implication")
+                if verbose:
+                    print("Resolving implication")
                 if evaluated_lhs is True:
-                    result = solve_rhs(facts, rhs, True)
+                    result = solve_rhs(facts, rhs, True, f, True)
                 else:
-                    print("Proposition is False, moving on")
+                    if verbose:
+                        print("Proposition is False, moving on")
                     continue
             elif cons.name == '<=>':
-                result = solve_rhs(facts, rhs, evaluated_lhs)
+                if verbose:
+                    print("Resolving equivalence")
+                result = solve_rhs(facts, rhs, evaluated_lhs, f, True)
             else:
                 raise ValueError("Invalid consequence operator", cons)
 
     return result
 
-def resolve_queries(rules, facts, queries):
+def resolve_queries(rules, facts, queries, verbose=False):
     for q in queries:
         if q not in facts:
             print(f"Query is not understood: {q}")
             continue
         f = facts[q]
-        res = resolve_query(rules, facts, f)
+        res = resolve_query(rules, facts, f, verbose)
         print(f"Q[{q}]: {res}")
 
 if __name__ == '__main__':
@@ -377,13 +400,14 @@ if __name__ == '__main__':
             rules, init_facts, facts, queries = validate_input(proper_input)
             
             initialize_facts(init_facts, facts)
+            
+            if args.verbose:
+                print("RULES", rules)
+                print("INIT FACTS:", init_facts)
+                print("FACTS:", facts)
+                print("QUERIES:", queries)
 
-            print("RULES", rules)
-            print("INIT FACTS:", init_facts)
-            print("FACTS:", facts)
-            print("QUERIES:", queries)
-
-            resolve_queries(rules, facts, queries)
+            resolve_queries(rules, facts, queries, args.verbose)
             
         except ValueError as e:
             print(e)
