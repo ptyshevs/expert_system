@@ -44,3 +44,8 @@ A => B
 
 Ths can be written as statement: "if 10 > 42 then Pavel eats chocolate cupcakes".
 Since condition is False, we don't have sufficient information to tell anything about the conclusion. However, if it's True, the result totally depends on right side.
+
+
+### Acknowledgement
+
+[./doc](Pseudo-code) is a courtesy of [@elyahove](https://github.com/ely-uf)
