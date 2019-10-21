@@ -244,6 +244,7 @@ def validate_input(lines):
     return rules_parsed, init_facts, facts, query
 
 def initialize_facts(init_facts, facts):
+    # Resetting facts (I need this for interactive evaluation)
     for f in facts.values():
         if f.atomic:
             f.value = None
