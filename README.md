@@ -48,4 +48,4 @@ Since condition is False, we don't have sufficient information to tell anything 
 
 ### Acknowledgement
 
-[./doc](Pseudo-code) is a courtesy of [@elyahove](https://github.com/ely-uf)
+[Pseudo-code](./doc) is a courtesy of [@elyahove](https://github.com/ely-uf)
