@@ -191,6 +191,38 @@ def parse_file(f):
             lines.append(" ".join(tokens))
     return lines
 
+def parse_rule(rule):
+    tokens = ''.join(c for c in rule.split(" ") if c)
+    exp = expand_tokens(tokens)
+    lhs, consequence, rhs = [], None, []
+
+    is_lhs = True
+    for t in exp:
+        if type(t) is Fact:
+            if t.name in facts:
+                t = facts[t.name]
+            else:
+                facts[t.name] = t
+            if not is_lhs:
+                t.atomic = False
+        if type(t) is str and t in ['=>', '<=>']:
+            consequence = t
+            is_lhs = False
+        elif type(t) is not str and t.name in ['=>', '<=>']:
+            consequence = t
+            is_lhs = False
+        elif is_lhs:
+            lhs.append(t)
+        else:
+            rhs.append(t)
+    if len(lhs) == 0:
+        raise ValueError(f"{rule}: Empty LHS")
+    elif len(rhs) == 0:
+        raise ValueError(f"{rule}: Empty RHS")
+    elif consequence is None:
+        raise ValueError(f"{rule}: Consequence is not understood")
+    return lhs, consequence, rhs
+
 def validate_input(lines):
     if len(lines) < 2:
         raise ValueError("Input is insufficient for proper working")
@@ -208,36 +240,7 @@ def validate_input(lines):
 
     rules_parsed = []
     for rule in rules:
-        tokens = ''.join(c for c in rule.split(" ") if c)
-        exp = expand_tokens(tokens)
-        lhs, consequence, rhs = [], None, []
-
-        is_lhs = True
-        for t in exp:
-            if type(t) is Fact:
-                if t.name in facts:
-                    t = facts[t.name]
-                else:
-                    facts[t.name] = t
-                if not is_lhs:
-                    t.atomic = False
-            if type(t) is str and t in ['=>', '<=>']:
-                consequence = t
-                is_lhs = False
-            elif type(t) is not str and t.name in ['=>', '<=>']:
-                consequence = t
-                is_lhs = False
-            elif is_lhs:
-                lhs.append(t)
-            else:
-                rhs.append(t)
-        if len(lhs) == 0:
-            raise ValueError(f"{rule}: Empty LHS")
-        elif len(rhs) == 0:
-            raise ValueError(f"{rule}: Empty RHS")
-        elif consequence is None:
-            raise ValueError(f"{rule}: Consequence is not understood")
-        rules_parsed.append((lhs, consequence, rhs))
+        rules_parsed.append(parse_rule(rule))
     return rules_parsed, init_facts, facts, query
 
 def initialize_facts(init_facts, facts):
@@ -357,20 +360,38 @@ if __name__ == '__main__':
 
     env = []
     if args.interactive:
+        rules, init_facts, facts, queries = [], "", dict(), ""
+
         while True:
             inp = input("> ")
             if args.natural:
                 inp = inp.upper()
             if inp.lower() == 'q' or inp.lower() == 'quit':
                 break
-            elif inp.lower() == 'env':
-                print(env)
+            elif inp.lower() == 'facts':
+                print(facts)
                 continue
-            try:
-                res = evaluate(inp,args.verbose)
-                print(res)
-            except ValueError as e:
-                print(e)
+            elif inp.lower() == 'rules':
+                print(rules)
+                continue
+            elif inp.lower() == 'exec':
+                if args.verbose:
+                    print(f"QUERIES NOW: |{queries}| | RULES: {rules}")
+
+                initialize_facts(init_facts, facts)
+                resolve_queries(rules, facts, queries, args.verbose)
+            else:
+                try:
+                    if not inp:
+                        continue
+                    if inp.startswith("="):
+                        init_facts = inp[1:]
+                    elif inp.startswith("?"):
+                        queries = inp[1:].strip()
+                    else:
+                        rules.append(parse_rule(inp))
+                except ValueError as e:
+                    print(e)
     else:
         if args.file is not None:
             try:

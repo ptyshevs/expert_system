@@ -4,7 +4,9 @@
 
 * Interactive mode
 * Verbose mode
-* More natural input (?)
+* Xor in conclusion
+* Or in conclusion
+* IFF (equivalence)
 
 ### Truth Tables
 
